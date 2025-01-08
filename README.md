@@ -129,6 +129,78 @@ SQL解析和处理的核心类，负责：
    - 支持批量处理
    - 智能SQL结构识别
 
+## 使用示例
+a. 直接指定条件
+1. mybatis 使用示例
+```java
+@Mapper
+public interface UserMapper {
+    @Select("SELECT * FROM users")
+    @DataPermission("dept_id = #{deptId}")
+    List<User> findAll();
+}
+```
+
+2. 普通service使用示例
+```java
+@Service
+public class UserService {
+    @DataPermission("dept_id IN (1, 2, 3)")
+    public List<User> findUsers() {
+        return userMapper.findAll();
+    }
+}
+```
+
+b.使用当前类的处理器方法
+```java
+@Service
+public class UserService {
+    @DataPermission(handler = "getPermission")
+    public List<User> findUsers() {
+        return userMapper.findAll();
+    }
+    
+    private String getPermission() {
+        return "dept_id = " + getCurrentUserDeptId();
+    }
+}
+```
+
+c.使用其他Bean的处理器方法
+```java
+@Service
+public class UserService {
+    @DataPermission(handler = "getPermission", bean = "permissionHandler")
+    public List<User> findUsers() {
+        return userMapper.findAll();
+    }
+}
+
+@Component("permissionHandler")
+public class PermissionHandler {
+    public String getPermission() {
+        return "dept_id IN (SELECT dept_id FROM user_departments WHERE user_id = " + getCurrentUserId() + ")";
+    }
+}
+```
+
+d.实现接口方式
+```java
+@Service
+public class UserService implements DataPermissionHandler {
+    @DataPermission
+    public List<User> findUsers() {
+        return userMapper.findAll();
+    }
+    
+    @Override
+    public String getPermission() {
+        return "dept_id = " + getCurrentUserDeptId();
+    }
+}
+```
+
 ## 使用注意事项
 
 1. SQL注入防护
